@@ -1,0 +1,176 @@
+---
+title: "A3 Q3"
+author: "Yu-Chun Chien"
+date: "4/4/2021"
+output: pdf_document
+---
+
+# Question 3
+
+```{r, include=F, echo = FALSE, warning=FALSE, message=FALSE}
+data_yc <- read.csv("hhw21.csv")
+```
+
+## (a) Simple Random Sample of Size 10
+
+```{r}
+set.seed(1005194380)
+sample_yc <- data_yc[sample(210,10),]
+sample_yc
+```
+
+## (b) SRS Estimate of Mean
+
+```{r, include=F, echo = FALSE, warning=FALSE, message=FALSE}
+sum(sample_yc$height)/10
+mean(sample_yc$height)
+var(sample_yc$height)
+```
+
+$\mu_y = \bar{y} = \frac{\sum\limits_{i=1}^n y_i}{n} = 167.54$
+
+$\hat{Var}(\bar{y}) = (1-\frac{n}{N}) \frac{s^2}{n} = 7.9179$, where $s^2 = \frac{\sum\limits_{i=1}^n (y_i-\bar{y})^2}{n-1} = 83.13822$
+
+### Estimate of $\mu_y$ with bound on error of estimation is $\bar{y} \pm 2  \sqrt{\hat{Var}(\bar{y})} = 167.54 \pm 2 \times 2.8139 = (161.9122, 173.1678)$
+
+## (c) Ratio Estimate of Mean
+
+```{r, include=F, echo = FALSE, warning=FALSE, message=FALSE}
+mean(sample_yc$height)/mean(sample_yc$handspan) * mean(data_yc$handspan)
+```
+
+```{r, include=F, echo = FALSE, warning=FALSE, message=FALSE}
+
+sum <- 0
+r <- mean(sample_yc$height)/mean(sample_yc$handspan)
+for(i in 1:10){
+  sum[i] <- (sample_yc$height[i] - r * sample_yc$handspan[i])^2
+}
+
+sr <- sum(sum)/9
+
+var_r <- (1-10/210) * sr/10
+sqrt(var_r)
+```
+
+$\mu_y = r \mu_x = \frac{\bar{y}}{\bar{x}}\mu_x = 168.1558$
+
+$\hat{Var}(\hat{\mu_y}) = (1-\frac{n}{N}) \frac{s_r^2}{n} = 34.89449$, where $s_r^2 = \frac{\sum\limits_{i=1}^n (y_i-rx_i)^2}{n-1} = 366.3921$
+
+### Estimate of $\mu_y$ with bound on error of estimation is $\hat{\mu_y} \pm 2  \sqrt{\hat{Var}(\hat{\mu_y})} = 168.1558 \pm 2 \times  5.907155 = (156.3415, 179.9701)$
+
+## (d) Regression Estimate of Mean
+
+(Fitted Regression in Appendix)
+
+```{r, include=F, echo = FALSE, warning=FALSE, message=FALSE}
+reg <- lm(sample_yc$height~ I(sample_yc$handspan - mean(sample_yc$handspan)))
+
+summary(reg)
+
+# mean estimate
+a <- mean(sample_yc$height) + 2.1583 * (mean(data_yc$handspan) - mean(sample_yc$handspan))
+
+# bound 
+b <- 2 * sqrt((1-10/210) * (sum(residuals(reg)^2)/8)/10)
+
+a + b
+a-b
+```
+
+$\mu_y = \bar{y} + b(\mu_x-\bar{x})  = 167.6959$
+
+$\hat{Var}(\hat{\mu_y}) = (1-\frac{n}{N}) \frac{1}{n}\frac{\sum\limits_{i=1}^n (y_i - a - bx_i)^2}{n-2} = 4.96911$
+
+### Estimate of $\mu_y$ with bound on error of estimation is $\hat{\mu_y} \pm 2  \sqrt{\hat{Var}(\hat{\mu_y})} = 167.6959 \pm 2 \times  2.22915 = (163.2376, 172.1542)$
+
+
+
+## (e) Difference Estimate of Mean
+
+$\mu_y = \bar{y} + (\mu_x-\bar{x})  = 167.6122$
+
+```{r, include=F, echo = FALSE, warning=FALSE, message=FALSE}
+mean(sample_yc$height) + (mean(data_yc$handspan) - mean(sample_yc$handspan))
+```
+
+$\hat{Var}(\hat{\mu_y}) = (1-\frac{n}{N}) \frac{1}{n}\frac{\sum\limits_{i=1}^n (d_i - \bar{d})^2}{n-1} =  5.42528$, where $\bar{d} = \bar{y} - \bar{x} = 147.89$ and $d_i = y_i - x_i$ for $i = 1,2, ..., 10$
+
+```{r, include=F, echo = FALSE, warning=FALSE, message=FALSE}
+di <- 0
+for(i in 1:10){
+  di[i] <- sample_yc$height[i] - sample_yc$handspan[i]
+}
+
+dbar <- mean(sample_yc$height) - mean(sample_yc$handspan)
+
+s <- 0
+for(i in 1:10){
+  s[i] <- (di[i]- dbar)^2
+}
+
+(1-10/210) * (1/10)* sum(s)/9
+
+c <- 2 * sqrt(
+(1-10/210) * (1/10)* sum(s)/9)
+
+167.6112 + c
+167.6112 - c
+```
+
+### Estimate of $\mu_y$ with bound on error of estimation is $\hat{\mu_y} \pm 2  \sqrt{\hat{Var}(\hat{\mu_y})} = 167.6112 \pm 2 \times  2.329223 = (163.9528, 172.2696)$
+
+## (f) Error of Estimation of the Four Estimators
+
+```{r, include=F, echo = FALSE, warning=FALSE, message=FALSE}
+mean(data_yc$height)
+```
+### Population mean: $\mu_y = 170.7112$
+
+### Error of estimation for SRS estimator: 3.1712
+
+$\lvert \hat{\mu} - \mu_y \rvert = \lvert 167.54 - 170.7112 \rvert = 3.1712$ 
+
+### Error of estimation for ratio estimator: 2.5554
+
+$\lvert \hat{\mu} - \mu_y \rvert = \lvert 168.1558 - 170.7112 \rvert = 2.5554$ 
+
+### Error of estimation for regression estimator: 3.0153
+
+$\lvert \hat{\mu} - \mu_y \rvert = \lvert 167.6959 - 170.7112 \rvert = 3.0153$ 
+
+### Error of estimation for difference estimator: 3.099
+
+$\lvert \hat{\mu} - \mu_y \rvert = \lvert 167.6122 - 170.7112 \rvert = 3.099$ 
+
+### SRS Estimator > Difference Estimator > Regression Estimator > Ratio Estimator
+
+The error of estimation for SRS estimator is the largest, while the error of estimation for ratio estimator is the smallest. 
+
+
+## (g) Recommended Estimators
+
+I would recommend using regression estimator. Although the error of estimation for ratio estimator is the smallest, its bound on error of estimation is too wide which makes it less precise. The bound on the error of estimation for regression estimator is the smallest ($B = 4.4582$), which makes it more precise. 
+
+Furthermore, the scatterplot below showed that x and y are correlated, but the regression line does not passes through the origin. Thus, using a regression estimator is better. 
+
+```{r, echo=F}
+plot(sample_yc$handspan, sample_yc$height, main= "Relationship Between x & y")
+abline(lm(sample_yc$height~sample_yc$handspan))
+```
+
+## (h) SRS Estimator vs. Other Estimators
+
+No, I do not recommend the SRS estimator over other three estimators. First, its error of estimation is larger than other three estimators. Further, its bound of error of estimation is not smaller than other three estimators (the bound for regression estimator and difference estimator is smaller), which does not make it more precise. Thus, I would not recommend using the SRS estimator. 
+
+## Appendix
+
+### Fitted Linear Model for Regression Estimation
+
+```{r, echo=F}
+reg <- lm(sample_yc$height~ I(sample_yc$handspan - mean(sample_yc$handspan)))
+
+summary(reg)
+```
+
+

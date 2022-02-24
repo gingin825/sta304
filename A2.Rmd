@@ -1,0 +1,267 @@
+---
+title: "STA304 Assignment 2"
+author: "Yu-Chun Chien"
+date: "3/11/2021"
+output: pdf_document
+---
+
+```{r, echo=FALSE, include=FALSE}
+#install.packages("sampling")
+library(tidyverse)
+library(dplyr)
+library(sampling)
+```
+
+# Question 1: Mainstreet Research Survey
+
+## A. Survey & Parameter of Interest
+
+### Chosen question
+"The current Ontario sex-ed curriculum includes lessons that teach gender identity theory. That is, that there are many genders other than male and female. Do you agree or disagree with teaching gender identity theory to children in Ontario elementary schools?"
+
+### Parameter of Interest
+Proportion of the respondents that selected strongly agree for the survey question
+
+## B. Estimation of Population Parameter
+
+### i. Weighted Frequency
+
+```{r, echo=FALSE, include=FALSE}
+pro <- 1/1014* (498 * 0.239 + 516 * 0.362)
+
+bound <- sqrt((((498^2 * 0.239 * 0.761)/497)+ ((516^2 * 0.362 * 0.638) / 515))/(1014^2))
+
+c(pro - bound, pro + bound)
+```
+
+Estimation of parameter using gender as the stratification variable: 
+
+$\hat{p_s} \pm 2  \sqrt{\hat{Var}(\hat{p_s})}$: $0.3015917 \pm 0.01429863 = (0.2872949, 0.3158885)$
+
+### ii. Unweighted Frequency
+
+```{r, echo=FALSE, include=FALSE}
+pro1 <- 1/1014* (577 * 0.239 + 437 * 0.362)
+
+bound1 <- sqrt((((577^2 * 0.239 * 0.761)/576)+ ((437^2 * 0.362 * 0.638) / 436))/(1014^2))
+
+c(pro1 - bound1, pro1 + bound1)
+```
+
+Estimation of parameter using gender as the stratification variable:
+
+$\hat{p_s} \pm 2  \sqrt{\hat{Var}(\hat{p_s})}$: $0.2920089 \pm 0.01416435 = (0.2778445, 0.3061732)$
+
+## C. Compare Two Estimates
+
+The value of the two estimates are similar. For unweighted frequency, the data is solely stratified based on the information that the respondents provided in the survey, which is the gender of the respondents. In constrast, for weighted frequency, the data is weighted based on additional information obtained by ways such as other survey or open resources available about the true gender proportion of the population. Since this additional adjustment is made after the observation, the weighted frequency is a post-stratified estimate. By making the adjustment, the results of the analysis might possibly become more accurate as the proportion of male and female is more similar to the entire population.    
+
+
+# Question 2: Baseball Dataset
+
+```{r, echo=FALSE, include=FALSE}
+# read dataset
+baseball_yc <- read_csv("baseball.csv")
+```
+
+## A. Stratified Random Sample
+
+```{r}
+# get information about the teams and proportions
+table(baseball_yc$team)
+
+team_size_yc <- c(26, 28, 28, 25, 27, 26, 29, 27, 28, 27, 26, 26, 25, 27, 24, 25, 25, 28, 29, 26, 27, 25, 27, 26, 27, 28, 26, 26, 27, 26)
+
+for(i in 1:30){
+  team_size_yc[i] <- team_size_yc[i]/ 797 * 150
+}
+team_size_yc
+```
+
+```{r}
+# SRSWOR of 150 samples
+set.seed(4380)
+players_yc <- strata(baseball_yc, c("team"), size = team_size_yc, method = "srswor")
+```
+
+### Steps for Selecting Stratified Sample
+
+1. Use the table() function to count the number of players in each team.
+
+2. After obtaining the number of players in each team, calculate $n_i$ by using proportional allocation, $n_i = n \times \frac{Ni}{N}$.
+
+3. using the strata() function in package "sampling", take stratified random sample without replacement, with sample size found in step (2). 
+
+## B. Mean of Log Salary
+
+```{r, echo=FALSE, include=FALSE}
+# get the stratified sample
+strat_yc <- getdata(baseball_yc, players_yc)
+strat_yc
+
+table(strat_yc$Stratum)
+
+strat_yc$logsal <- log(strat_yc$salary)
+# mean of salary
+mean(strat_yc$logsal)
+
+var_strat_yc <- 0
+Ni_yc <- c(26, 28, 28, 25, 27, 26, 29, 27, 28, 27, 26, 26, 25, 27, 24, 25, 25, 28, 29, 26, 27, 25, 27, 26, 27, 28, 26, 26, 27, 26)
+ni_yc <- c(4, 5, 5, 4, 5, 4, 5, 5, 5, 5, 4, 4, 4, 5, 4, 4, 4, 5, 5, 4, 5, 4, 5, 4, 5, 5, 4, 4, 5, 4)
+
+
+for(k in 1:30){
+  var_strat_yc[k] <- Ni_yc[k]^2 * (1 - ni_yc[k]/Ni_yc[k])* var(strat_yc$logsal)/ni_yc[k]
+}
+se_mean_yc <- sqrt(sum(var_strat_yc)/(sum(Ni_yc))^2)
+
+mean_estimate_yc <- c(mean(strat_yc$logsal) - se_mean_yc, mean(strat_yc$logsal) + se_mean_yc)
+mean_estimate_yc
+```
+
+Mean of ln(salary): 13.84192 
+
+95% CI: (13.74520, 13.93863), with margin of error = $2\times 0.09671471$
+
+## C. Proportion of Pitchers
+
+```{r, echo=FALSE, include=FALSE}
+strat_pos_yc <- table(strat_yc$Stratum, strat_yc$position)
+strat_pos_yc[,7]
+prop_strat_yc <- 0
+for(s in 1:30){
+  prop_strat_yc[s] <- Ni_yc[s] * strat_pos_yc[s, 7]/ni_yc[s]
+}
+
+sum(prop_strat_yc)/sum(Ni_yc)
+
+se_prop_yc <- 0
+
+for(o in 1:30){
+  se_prop_yc[o] <- (Ni_yc[o])^2 * strat_pos_yc[o, 7]/ni_yc[o] * (1-(strat_pos_yc[o, 7]/ni_yc[o]))/(ni_yc[o]-1) * (1 - ni_yc[o]/Ni_yc[o])
+}
+
+sum(se_prop_yc)/ (sum(Ni_yc))^2
+
+se_estimate_yc <- c(sum(prop_strat_yc)/sum(Ni_yc) - sum(se_prop_yc)/ (sum(Ni_yc))^2, sum(prop_strat_yc)/sum(Ni_yc) + sum(se_prop_yc)/ (sum(Ni_yc))^2)
+se_estimate_yc
+```
+
+Proportion of ployers in the data set who are pitchers: 0.4577792
+
+95% CI: (0.4561463, 0.4594121), with margin of error = $2\times  0.001632907$
+
+## D. Proportion of Pitchers SRS
+
+```{r, echo=FALSE, include=FALSE}
+set.seed(4380)
+srs_yc <- baseball_yc[sample(797,150),]
+pos_yc <- table(srs_yc$position)
+
+prop_srs_yc <- pos_yc[7]/ 150
+prop_srs_yc
+
+var_prop_yc <- (1-150/797) * prop_srs_yc * (1-prop_srs_yc)/ (150-1)
+var_prop_yc
+
+est_yc <- c(prop_srs_yc - var_prop_yc, prop_srs_yc + var_prop_yc)
+est_yc
+```
+
+Proportion of ployers in the data set who are pitchers: 0.42
+
+95% CI: (0.4186728, 0.4213272), with margin of error = $2\times  0.001327202$
+
+The estimate of proportion using simple random sampling is 0.04 smaller than the estimate of proportion using stratified random sampling. Using simple random sampling, the variance of sample proportion is much smaller than the variance of sample proportion using stratified random sampling.
+
+## E. Sample Variance of Log Salary
+
+```{r, echo=FALSE, include=FALSE}
+var_est_yc <- tapply(strat_yc$logsal, strat_yc$Stratum, var)
+
+fpc_yc <- 0
+
+for(i in 1:30){
+  fpc_yc[i] <- 1-ni_yc[i]/Ni_yc[i]
+  var_est_yc[i] <- var_est_yc[i] * fpc_yc[i]
+}
+var_est_yc
+```
+
+When using proportional allocation, we assume that the cost and variance of each stratum is similar. However, the variance between the stratums are quite different. Thus, instead of using proportional allocation, optimal allocation would be better for this problem, since optimal allocation take into account the difference in variance between each stratum to determine the allocation.  
+
+## F. Population Stratum Variances & Optimal Allocation
+
+
+```{r, echo=FALSE, include=FALSE}
+
+pop_var <- 0
+
+for (h in 1:30){
+  pop_var[h] <- var_est_yc[h] * (Ni_yc[h]-1)/(Ni_yc[h])
+}
+```
+
+### Sample Sizes for Optimal Allocation
+
+```{r, echo=FALSE, include=FALSE}
+allo_yc <- 0
+
+for(l in 1:30){
+  allo_yc[l] <- Ni_yc[l]* var_est_yc[l]
+}
+
+base_yc <- sum(allo_yc)
+
+allo_ni_yc <- 0
+for(r in 1:30){
+  allo_ni_yc[r] <- 150 * Ni_yc[r] * var_est_yc[r]/base_yc
+}
+allo_ni_yc
+round(allo_ni_yc)
+```
+
+```{r, echo=FALSE, include=FALSE}
+# if needed then add
+allo_yc_2 <- 0
+
+for(q in 1:30){
+  allo_yc_2[q] <- Ni_yc[q]*   pop_var[q]
+}
+
+base_yc_2 <- sum(allo_yc_2)
+
+allo_ni_yc_2 <- 0
+for(w in 1:30){
+  allo_ni_yc_2[w] <- 150 * Ni_yc[w] * pop_var[w]/base_yc_2
+}
+allo_ni_yc_2
+round(allo_ni_yc_2)
+```
+
+By applying optimal allocation, the number of sample size in each strata is as follows: 9, 6, 9, 2, 12, 10, 6, 3, 6, 1, 2, 0, 0, 4, 5, 2, 5, 6, 4, 8, 5, 6, 1, 8, 2, 5 ,9, 1, 8, 3. The total sample size is 148 after rounding the decimals. There is two strata with sample size equal to zero after rounding, which would potentially make the two teams underrepresented. Thus, we fix this by sampling one unit from each team, making the total sample size up to 150.  
+
+The sample size of each strata by using proportional allocation is: 4, 5, 5, 4, 5, 4, 5, 5, 5, 5, 4, 4, 4, 5, 4, 4, 4, 5, 5, 4, 5, 4, 5, 4, 5, 5, 4, 4, 5, 4
+
+The sample size of each strata by using optimal allocation is: 9, 6, 9, 2, 12, 10, 6, 3, 6, 1 , 2, 0, 0, 4, 5, 2, 5, 6, 4, 8, 5, 6, 1, 8, 2, 5, 9, 1, 8, 3.
+
+By incorporating variance to decide allocation, optimal allocation differs significantly from proportional solution in this context. In our data set, each team might account for relatively similar proportion, but they differ quite a lot in variance of ln of salary. Thus, we could observe that optimal allocation suggested that we should sample more units from the teams with bigger variance in order to make a more accurate estimate of the entire data. 
+
+# Appendix
+
+## Sample Variances of Logsal in Each Stratum
+
+```{r, echo=F}
+var_est_yc
+```
+
+## Population Stratum Variances of Logsal in Each Stratum
+
+Using $\sigma^2  = s^2 \times \frac{N-1}{N}$, the population variance is estimated using the sample variance.
+
+```{r, echo=F}
+pop_var
+```
+
+
+
